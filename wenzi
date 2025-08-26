@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>字集全庫 - 中文字典</title>
+    <!-- 引入 Tailwind CSS 以便快速樣式化 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Google Fonts - Noto Sans TC (保留，以備不時之需) -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap">
+    <style>
+        /* 自定義 CSS 樣式，用於控制版面和字體 */
+        body {
+            /* 將中文字體設定為標楷體，並保留備用字體 */
+            font-family: 'BiauKai', 'DFKai-SB', 'Noto Sans TC', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .container {
+            max-width: 100%;
+        }
+        .result-box {
+            min-height: 400px;
+            transition: all 0.3s ease;
+        }
+        .character-card {
+            border-left: 5px solid #3b82f6;
+        }
+        .search-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+        }
+        /* 特別為拼音和網址部分指定 Times New Roman 字體 */
+        .pinyin, .font-times {
+            font-family: 'Times New Roman', Times, serif;
+        }
+        .header-cell {
+            text-align: center;
+            vertical-align: middle;
+        }
+        /* 字符顯示區域的樣式 */
+        .character-display-container {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            gap: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        /* 字符文字大小 */
+        .character-text {
+            font-size: 80px;
+            line-height: 1;
+        }
+        /* 字符圖片樣式 */
+        .character-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            display: block;
+        }
+        /* 結果網格中按鈕的樣式 */
+        .results-grid-button {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 1rem;
+            background-color: #e0f2fe;
+            color: #1e40af;
+            font-size: 1.5rem;
+            border-radius: 0.5rem;
+            transition: background-color 0.2s ease;
+            width: 100%;
+        }
+        .results-grid-button:hover {
+            background-color: #b9e6ff;
+        }
+        /* 載入使用者上傳的字體檔案 */
+        @font-face {
+            font-family: 'ZhengKai-Unicode2';
+            src: url('/content/uploaded:全字庫正楷體Unicode2.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+        .font-zhengkai-unicode2 {
+            font-family: 'ZhengKai-Unicode2', sans-serif;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <!-- 主容器，包含整個應用程式介面 -->
+    <div class="w-full bg-white shadow-xl rounded-2xl p-6 sm:p-10 transition-all duration-300">
+        
+        <!-- 導航選單 -->
+        <nav class="flex justify-center sm:justify-end gap-4 mb-6">
+            <button id="nav-dictionary" class="nav-button px-4 py-2 rounded-full font-semibold text-gray-800 bg-gray-200 hover:bg-gray-300 transition-colors">首頁</button>
+            <button id="nav-info" class="nav-button px-4 py-2 rounded-full font-semibold text-gray-800 bg-gray-200 hover:bg-gray-300 transition-colors">編輯說明</button>
+        </nav>
+        
+        <!-- -------------------------------------------------------- -->
+        <!-- 編輯說明頁面 - 預設顯示 -->
+        <!-- -------------------------------------------------------- -->
+        <div id="info-view" class="active-page">
+            <header class="text-center mb-8">
+                <h1 class="text-4xl sm:text-5xl text-gray-800 mb-2">編輯說明</h1>
+            </header>
+            <div class="p-6 bg-gray-100 rounded-xl">
+                <ul class="list-disc list-inside text-gray-600 leading-relaxed space-y-2">
+                    <li>【漢】許慎撰，【清】段玉材注，李添富總校訂，李鵑娟主編《新添古音 說文解字注 標點本》（臺北：洪葉文化事業有限公司），2022年6月初版一刷。</li>
+                    <li>【宋】陳彭年等，編輯顧問：陳新雄、金周生，主編李添富《新校宋本廣韻》（臺北：洪葉文化事業有限公司），2018年10月修訂三版一刷。</li>
+                    <li>《漢語大字典》，白雲深處人家海外站。網址：<a href="https://homeinmists.ilotus.org/hd/hydzd.php" class="text-blue-500 hover:underline font-times">homeinmists.ilotus.org/hd/hydzd.php</a></li>
+                    <li>冷玉龍、韋一心等編撰《中華字海》（北京：中國友誼出版公司），2000年5月重印。</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- -------------------------------------------------------- -->
+        <!-- 字典查詢頁面 - 預設隱藏 -->
+        <!-- -------------------------------------------------------- -->
+        <div id="dictionary-view" class="hidden">
+            <!-- 頁首：網站標題與描述 -->
+            <header class="text-center mb-8">
+                <h1 class="text-4xl sm:text-5xl text-gray-800 mb-2 tracking-wide">字集全庫</h1>
+                <p class="text-lg text-gray-500">一個簡潔的中文字典</p>
+            </header>
+
+            <!-- 搜尋區塊：包含輸入框和搜尋按鈕 -->
+            <div class="flex flex-col sm:flex-row items-center gap-4 mb-8">
+                <input 
+                    type="text" 
+                    id="searchInput" 
+                    placeholder="請輸入一個漢字、注音、部首或字形描述..." 
+                    class="search-input flex-grow w-full px-5 py-3 text-lg rounded-xl border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 transition-colors duration-200"
+                >
+                <button 
+                    id="searchButton" 
+                    class="w-full sm:w-auto px-8 py-3 text-lg text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-md transform transition-transform hover:scale-105 whitespace-nowrap"
+                >
+                    搜尋
+                </button>
+            </div>
+
+            <!-- 搜尋結果顯示區塊 -->
+            <div id="resultContainer" class="result-box w-full bg-gray-50 rounded-xl p-6 transition-all duration-300">
+                <p class="text-gray-500 text-lg text-center">在這裡輸入一個字來查詢。</p>
+            </div>
+            
+            <!-- 頁腳：版權資訊 -->
+            <footer class="mt-8 text-center text-gray-400 text-sm">
+                <p>&copy; 2025 字集全庫. All rights reserved.</p>
+            </footer>
+        </div>
+
+    </div>
+
+    <script type="module">
+        // =========================================================================
+        // JavaScript 程式碼
+        // =========================================================================
+
+        // 導入 Firebase SDK 模組
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // 全域變數，從 Canvas 環境中取得
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let db, auth, userId;
+
+        // 應用程式初始化
+        async function initializeAppAndAuth() {
+            try {
+                // 檢查 firebaseConfig 是否為空物件
+                if (Object.keys(firebaseConfig).length === 0) {
+                    console.error("Firebase config is missing. App cannot be initialized.");
+                    return;
+                }
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                userId = auth.currentUser.uid;
+                console.log("Firebase initialized successfully. User ID:", userId);
+
+            } catch (error) {
+                console.error("Error initializing Firebase:", error);
+            }
+        }
+        
+        // 取得 HTML 元素
+        const searchInput = document.getElementById('searchInput');
+        const searchButton = document.getElementById('searchButton');
+        const resultContainer = document.getElementById('resultContainer');
+        const navInfoButton = document.getElementById('nav-info');
+        const navDictionaryButton = document.getElementById('nav-dictionary');
+        const infoView = document.getElementById('info-view');
+        const dictionaryView = document.getElementById('dictionary-view');
+
+
+        // 定義一個全域物件來儲存原始字典資料
+        window.defaultDictionaryData = {
+            "美": { char: "美", description: "⿱羊大", pinyin: "měi", zhuyin: "ㄇㄟˇ", radical: "羊", strokes: 9, meaning: { "說文解字": "甘也。从羊大。","廣韻": "莫軌切，上聲，旨韻。好也、善也。", "中華字海": "美，古作羊大。本義是味美，引申為好、善。後又引申為華麗、漂亮。", "漢語大字典": "1. 好，善。2. 貌、姿態漂亮。3. 喜歡，稱讚。4. 使...變好、變美。5. 美洲的簡稱。", "其他": "形容人或事物外表、內在、或行為上的優點。" } },
+            "家": { char: "家", description: "⿱宀豕", pinyin: "jiā", zhuyin: "ㄐㄧㄚ", radical: "宀", strokes: 10, meaning: { "說文解字": "居也。从宀，豭省聲。", "廣韻": "古牙切，平聲，麻韻。居也。", "中華字海": "家，本義指人們共同生活的場所，引申為家庭、住處。", "漢語大字典": "1. 共同生活的眷屬。2. 居住的地方.3. 學術或藝術流派.4. 職業家。", "其他": "指家庭或住處。" } },
+            "愛": { char: "愛", description: "⿳𠬪心夊", pinyin: "ài", zhuyin: "ㄞˋ", radical: "心", strokes: 13, meaning: { "說文解字": "行皃（音貌）。徐鉉曰：今俗作愛字。", "廣韻": "烏代切，去聲，怪韻。惠也，惜也。",  "中華字海": "愛，對人或事物有很深的感情，樂於幫助。", "漢語大字典": "1. 喜歡。2. 憐惜，愛護.3. 珍惜。", "其他": "對人或事物有深厚的情感，亦作喜歡或憐惜。" } },
+            "電": { char: "電", description: "⿱雨电", pinyin: "diàn", zhuyin: "ㄉㄧㄢˋ", radical: "雨", strokes: 13, meaning: { "說文解字": "無", "廣韻": "徒玷切，去聲，琰韻。雷也。","中華字海": "電，自然界中的一種物理現象。後引申為電力、電器。", "漢語大字典": "1. 物理學名詞.2. 電力.3. 電器.", "其他": "電力或與電力相關的裝置。" } },
+            "腦": { char: "腦", description: "⿱月?", pinyin: "nǎo", zhuyin: "ㄋㄠˇ", radical: "肉", strokes: 12, meaning: { "說文解字": "無", "廣韻": "諾交切，上聲，巧韻。首之骨。", "中華字海": "腦，頭部內部的器官，是人體的指揮中心。", "漢語大字典": "1. 頭部內的器官.2. 思維能力.3. 像腦的東西.", "其他": "指頭部中主宰思考、記憶的器官。" } },
+            "書": { char: "書", description: "⿱聿曰", pinyin: "shū", zhuyin: "ㄕㄨ", radical: "曰", strokes: 10, meaning: { "說文解字": "箸也。从聿，者聲。", "廣韻": "式與切，平聲，魚韻。寫也。", "中華字海": "書，本義為寫作、記錄。後引申為書籍、信件等。", "漢語大字典": "1. 記載文字的著作。2. 信件.3. 寫字、記錄。", "其他": "將文字記載下來的書籍或文件。" } },
+            "日": { char: "日", description: "⿴囗丶", pinyin: "rì", zhuyin: "ㄖˋ", radical: "日", strokes: 4, meaning: { "說文解字": "實也。太陽之精不言，其光也。", "廣韻": "人質切，入聲，物韻。天也。", "中華字海": "日，太陽。後引申為白天、一天。", "漢語大字典": "1. 太陽.2. 白天.3. 一天。", "其他": "指太陽或一天二十四小時的時間。" } },
+            "早": { char: "早", description: "⿱日十", pinyin: "zǎo", zhuyin: "ㄗㄠˇ", radical: "日", strokes: 6, meaning: { "說文解字": "晨也。从日，甲聲。", "廣韻": "子老切，上聲，晧韻。晨也。", "中華字海": "早，指時間在前的。後指清晨。", "漢語大字典": "1. 時間在前的.2. 清晨.3. 預先。", "其他": "比預期或正常時間更提前。" } },
+            "明": { char: "明", description: "⿰日月", pinyin: "míng", zhuyin: "ㄇㄧㄥˊ", radical: "日", strokes: 8, meaning: { "說文解字": "照也。从日月。", "廣韻": "武丁切，平聲，清韻.照也。", "中華字海": "明，光亮。後引申為清楚、明白。", "漢語大字典": "1. 光亮.2. 清楚，明白.3. 下一個。", "其他": "指光線充足或理解透徹。" } },
+            "亮": { char: "亮", description: "⿳亠口⿱冖儿", pinyin: "liàng", zhuyin: "ㄌㄧㄤˋ", radical: "亠", strokes: 9, meaning: { "說文解字": "無", "廣韻": "力讓切，去聲，漾韻。光也。", "中華字海": "亮，光線充足。後引申為發光。", "漢語大字典": "1. 光線充足.2. 發光.3. 聲音宏亮。", "其他": "發出或反射光線。" } },
+            "花": { char: "花", description: "⿱艹化", pinyin: "huā", zhuyin: "ㄏㄨㄚ", radical: "艹", strokes: 7, meaning: { "說文解字": "華也。从艸，化聲。", "廣韻": "呼瓜切，平聲，麻韻。華也。", "中華字海": "花，植物的生殖器官，通常顏色鮮豔。", "漢語大字典": "1. 植物的花.2. 有花紋的.3. 耗費、浪費。", "其他": "指植物開出的五彩繽紛的部分。" } },
+            "草": { char: "草", description: "⿱艹早", pinyin: "cǎo", zhuyin: "ㄘㄠˇ", radical: "艹", strokes: 9, meaning: { "說文解字": "百芔也。从芔，日聲。", "廣韻": "七老切，上聲，晧韻。晨也。", "中華字海": "草，泛指一切沒有粗大木質莖的植物。", "漢語大字典": "1. 植物.2. 粗糙的.3. 草稿。", "其他": "綠色、柔軟、沒有主幹的植物。" } },
+            "𪹚": { char: "𪹚", description: "⿰火旁", pinyin: "yàn", zhuyin: "ㄧㄢˋ", radical: "火", strokes: 28, meaning: { "說文解字": "無", "廣韻": "無", "中華字海": "火光閃耀的樣子。", "漢語大字典": "1. 火光閃耀的樣子.2. 亦作「爓」。", "其他": "形容火光熾盛或火勢旺盛的樣子。" } },
+            "󸾯": { char: "󸾯", description: "⿰車藏", pinyin: "gǒng", zhuyin: "ㄍㄨㄥˇ", radical: "日", strokes: 10, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "《字彙補》古文皛字。", "中華字海": "本義是明亮、潔白，亦作「皛」的異體字。", "漢語大字典": "1. 明亮貌。2. 潔白貌。3. 古同「皛」。", "其他": "形容非常明亮、潔淨的樣子。" } },
+            "𡢁": { char: "𡢁", description: "⿱𫤱女", pinyin: "jié", zhuyin: "ㄐㄧㄝˊ", radical: "女", strokes: 16, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "《玉篇》美貌。", "中華字海": "形容女子美麗、聰慧。", "漢語大字典": "1. 古代人名用字.2. 美麗貌。", "其他": "形容女子容貌美麗。" } },
+            "著": { char: "著", description: "⿱艹者", radical: "艹", strokes: 11, tones: [ { pinyin: "zhù", zhuyin: "ㄓㄨˋ", meaning: { "說文解字": "無", "康熙字典": "《唐韻》直略切《集韻》陟略切，並音著。明也。《玉篇》顯也。", "常用釋義": "1. 寫作、著作。例如：著作等身。2. 顯著、著名。例如：著稱、昭著。", "其他": "指撰寫書籍或文章，或指事物顯而易見。" } }, { pinyin: "zháo", zhuyin: "ㄓㄠˊ", meaning: { "說文解字": "無", "康熙字典": "無", "常用釋義": "1. 燃燒、接觸。例如：著火。2. 達到目的或受到某種影響。例如：著涼、著迷。", "其他": "指點燃或接觸到某事物，或指受到某種影響。" } }, { pinyin: "zhāo", zhuyin: "ㄓㄠ", meaning: { "說文解字": "無", "康熙字典": "無", "常用釋義": "1. 表示急切。例如：著急。", "其他": "指心裡焦慮或感到急切。" } }, { pinyin: "zhe", zhuyin: "˙ㄓㄜ", meaning: { "說文解字": "無", "康熙字典": "無", "常用釋義": "助詞，表示動作正在進行或狀態的持續。例如：笑著、走著。", "其他": "作為動詞或形容詞後的助詞，表示動作或狀態的延續。" } }, { pinyin: "zhuó", zhuyin: "ㄓㄨㄛˊ", meaning: { "說文解字": "無", "康熙字典": "無", "常用釋義": "1. 穿戴。例如：著裝。2. 顯露、附著。例如：著色。", "其他": "指穿上衣服、鞋子等，或指顯現出來。" } } ] },
+            "搜": { char: "搜", description: "⿰扌叟", pinyin: "sōu", zhuyin: "ㄙㄡ", radical: "手", strokes: 13, meaning: { "說文解字": "無", "廣韻": "蘇侯切，平聲，侯韻。求也。", "康熙字典": "《廣韻》蘇侯切《集韻》《韻會》嵩侯切《正韻》先侯切，並音蒐。", "中華字海": "搜，指尋找、探求。", "漢語大字典": "1. 尋找.2. 搜索.", "其他": "仔細地尋覓或檢察。" } },
+            "尋": { char: "尋", description: "⿳⺕⿰工口寸", pinyin: "xún", zhuyin: "ㄒㄩㄣˊ", radical: "寸", strokes: 12, meaning: { "說文解字": "八尺也。从工，口聲。", "廣韻": "徐林切，平聲，侵韻。八尺也。", "康熙字典": "《廣韻》徐林切《集韻》《韻會》徐心切《正韻》蘇尋切，並音噚。", "中華字海": "尋，指尋找，也指八尺的長度單位。", "漢語大字典": "1. 尋找.2. 探究.3. 古代長度單位，八尺。", "其他": "四處尋覓或探求某人或某物。" } },
+            "旦": { char: "旦", description: "⿱日一", pinyin: "dàn", zhuyin: "ㄉㄢˋ", radical: "日", strokes: 5, meaning: { "說文解字": "明也。从日，一聲。", "廣韻": "當但切，去聲，翰韻。平旦也。", "康熙字典": "《唐韻》《集韻》《韻會》當但切《正韻》都旦切，並音旦。", "中華字海": "旦，日出時。後引申為白天。", "漢語大字典": "1. 日出時。2. 白天。3. 某一天。", "其他": "早晨或某個特定的日子。" } },
+            "旬": { char: "旬", description: "⿱勹日", pinyin: "xún", zhuyin: "ㄒㄩㄣˊ", radical: "日", strokes: 6, meaning: { "說文解字": "徧也。十日為旬。", "廣韻": "徐倫切，平聲，真韻。十日為旬。", "康熙字典": "《廣韻》徐倫切《集韻》《韻會》徐筠切《正韻》隨倫切，並音巡。", "中華字海": "旬，十天為一旬。引申為十。", "漢語大字典": "1. 十日為一旬。2. 十年。3. 遍。", "其他": "指十天為一週期的時間。" } },
+            "旨": { char: "旨", description: "⿱匕日", pinyin: "zhǐ", zhuyin: "ㄓˇ", radical: "日", strokes: 6, meaning: { "說文解字": "美也。从匕，日聲。", "廣韻": "脂利切，去聲，至韻。美味也。", "康熙字典": "《唐韻》《集韻》《韻會》旨切《正韻》舉旨切，並音止。", "中華字海": "旨，本義為美味。引申為意旨、目的。", "漢語大字典": "1. 美味。2. 意旨、目的。3. 帝王的命令。", "其他": "指意圖、目的，或指美味。" } },
+            "旱": { char: "旱", description: "⿱日干", pinyin: "hàn", zhuyin: "ㄏㄢˋ", radical: "日", strokes: 7, meaning: { "說文解字": "不雨也。从日，干聲。", "廣韻": "侯旰切，去聲，翰韻。不雨也。", "康熙字典": "《廣韻》侯旰切《集韻》豪旰切，並音旱。", "中華字海": "旱，久不下雨，造成乾旱。", "漢語大字典": "1. 久不下雨.2. 陸地上.", "其他": "指長時間沒有降雨的氣候狀況。" } },
+            "晚": { char: "晚", description: "⿰日免", pinyin: "wǎn", zhuyin: "ㄨㄢˇ", radical: "日", strokes: 11, meaning: { "說文解字": "無", "廣韻": "無販切，上聲，緩韻。遲也。", "康熙字典": "《廣韻》無販切《集韻》暮販切，並音晚。", "中華字海": "晚，指太陽下山後的一段時間。引申為遲、後。", "漢語大字典": "1. 太陽落山後的時間。2. 遲。", "其他": "指一天中較晚的時段。" } },
+            "晴": { char: "晴", description: "⿰日青", pinyin: "qíng", zhuyin: "ㄑㄧㄥˊ", radical: "日", strokes: 12, meaning: { "說文解字": "無", "廣韻": "從容切，平聲，清韻。天氣清朗也。", "康熙字典": "《廣韻》從容切《集韻》《韻會》才性切，並音情。", "中華字海": "晴，天空無雲，天氣明朗。", "漢語大字典": "1. 天空無雲.2. 明朗.", "其他": "形容天氣沒有下雨，陽光普照。" } },
+            "一": { char: "一", description: "一", pinyin: "yī", zhuyin: "ㄧ", radical: "一", strokes: 1, meaning: { "說文解字": "惟初大極，道立於一。造分天地，化成萬物。凡一之屬皆从一。", "廣韻": "於悉切，平聲，質韻。數之始也。", "康熙字典": "《唐韻》《廣韻》於悉切《集韻》《韻會》《正韻》益悉切，音壹。數之始也。", "中華字海": "一，是數字的開始，代表單一、統一。", "漢語大字典": "1. 數詞.2. 表單獨.3. 統一.", "其他": "數字中的一，或指一個、單一。" } },
+            "丁": { char: "丁", description: "⿱一亅", pinyin: "dīng", zhuyin: "ㄉㄧㄥ", radical: "一", strokes: 2, meaning: { "說文解字": "夏時萬物皆丁壯。象形。", "廣韻": "當經切，平聲，青韻。丁壯也。", "康熙字典": "《唐韻》《廣韻》當經切《集韻》《韻會》都經切《正韻》都丁切，並音丁。", "中華字海": "丁，壯盛。又指古代天干的第四位。", "漢語大字典": "1. 天干的第四位.2. 壯盛.3. 人口，男丁.", "其他": "天干第四位，或指強壯、健壯。" } },
+            "七": { char: "七", description: "⿻乚一", pinyin: "qī", zhuyin: "ㄑㄧ", radical: "一", strokes: 2, meaning: { "說文解字": "陽之正也。從一，象形。", "廣韻": "七悉切，入聲，質韻。數也。", "康熙字典": "《唐韻》七悉切《集韻》《韻會》《正韻》切悉切，並音七。", "中華字海": "七，數字七。古人認為其為陽氣正盛之數。", "漢語大字典": "1. 數詞.2. 古同「漆」.", "其他": "數字七，或指多數。" } },
+            "三": { char: "三", description: "⿱一二", pinyin: "sān", zhuyin: "ㄙㄢ", radical: "一", strokes: 3, meaning: { "說文解字": "天地人之道也。从三。三，數也。", "廣韻": "蘇甘切，平聲，覃韻。數也。", "康熙字典": "《唐韻》《集韻》《韻會》蘇甘切《正韻》蘇覃切，並音三。", "中華字海": "三，數字三。代表多、多次。", "漢語大字典": "1. 數詞.2. 表多數.3. 再三.", "其他": "數字三，亦可指多次或多數。" } },
+            "丈": { char: "丈", description: "⿻𠂇乀", pinyin: "zhàng", zhuyin: "ㄓㄤˋ", radical: "一", strokes: 3, meaning: { "說文解字": "十尺也。从又持一，一所以為十也。", "廣韻": "直亮切，去聲，漾韻。長也。", "康熙字典": "《唐韻》《集韻》《韻會》直亮切《正韻》仲良切，並音杖。", "中華字海": "丈，長度單位，十尺為一丈。也指男子、老人。", "漢語大字典": "1. 長度單位，十尺。2. 丈夫。3. 老人。", "其他": "長度單位，或對年長男子的尊稱。" } },
+            "上": { char: "上", description: "⿱⺊一", pinyin: "shàng", zhuyin: "ㄕㄤˋ", radical: "一", strokes: 3, meaning: { "說文解字": "高也。从一，一所以為高也。", "廣韻": "時掌切，上聲，養韻。上也。", "康熙字典": "《唐韻》《集韻》《韻會》《正韻》時掌切，音賞。", "中華字海": "上，方位詞，指高處。引申為向上、優等。", "漢語大字典": "1. 位置在高處。2. 由低到高.3. 優等。", "其他": "指在某物體的上方，或向上移動。" } },
+            "下": { char: "下", description: "⿱一卜", pinyin: "xià", zhuyin: "ㄒㄧㄚˋ", radical: "一", strokes: 3, meaning: { "說文解字": "底也。从一，一所以為底也。", "廣韻": "胡雅切，上聲，馬韻。下也。", "康熙字典": "《唐韻》《集韻》《韻會》胡雅切《正韻》亥雅切，並音下。", "中華字海": "下，方位詞，指低處。引申為向下、劣等。", "漢語大字典": "1. 位置在低處。2. 由高到低.3. 劣等。", "其他": "指在某物體的下方，或向下移動。" } },
+            "丕": { char: "丕", description: "⿱不一", pinyin: "pī", zhuyin: "ㄆㄧ", radical: "一", strokes: 5, meaning: { "說文解字": "大也。从一，不聲。", "廣韻": "敷非切，平聲，微韻。大也。", "康熙字典": "《唐韻》《集韻》敷非切《韻會》膚非切《正韻》披非切，並音丕。", "中華字海": "丕，大。用來形容事物重大、廣大。", "漢語大字典": "1. 大.2. 開始.", "其他": "指大、偉大，通常用於書面語。" } },
+            "且": { char: "且", description: "⿱月一", pinyin: "qiě", zhuyin: "ㄑㄧㄝˇ", radical: "一", strokes: 5, meaning: { "說文解字": "薦也。从一，从几，象祭肉在几上。", "廣韻": "子且切，上聲，馬韻。猶也。", "康熙字典": "《唐韻》《廣韻》子且切《集韻》《韻會》《正韻》姊夜切，並音借。", "中華字海": "且，本義為祭祀用的肉。後用作連詞，表示並且、而且。", "漢語大字典": "1. 連詞，而且。2. 助詞，暫且。3. 姓。", "其他": "連詞，表示並列或遞進關係。" } },
+            "丙": { char: "丙", description: "⿱一内", pinyin: "bǐng", zhuyin: "ㄅㄧㄥˇ", radical: "一", strokes: 5, meaning: { "說文解字": "位也。从一，象物體在器皿中。", "廣韻": "必竟切，上聲，迥韻。位也。", "康熙字典": "《唐韻》《集韻》《韻會》必竟切《正韻》補竟切，並音柄。", "中華字海": "丙，天干的第三位。也指光明。", "漢語大字典": "1. 天干的第三位.2. 火的象徵。", "其他": "天干第三位，或指明亮、顯著。" } },
+            "弌": { char: "弌", description: "⿹弋一", pinyin: "yī", zhuyin: "ㄧ", radical: "弋", strokes: 4, meaning: { "說文解字": "古文一。", "廣韻": "於悉切，平聲，質韻。數之始也。", "康熙字典": "《廣韻》於悉切《集韻》益悉切，並音一。《說文》古文一。从弋。一，數之始也。", "中華字海": "「一」的古字。", "漢語大字典": "同「一」。", "其他": "古代「一」字的寫法。" } },
+            "元": { char: "元", description: "⿱二儿", pinyin: "yuán", zhuyin: "ㄩㄢˊ", radical: "二", strokes: 4, meaning: { "說文解字": "始也。从一，兀聲。", "廣韻": "愚袁切，平聲，元韻。始也。", "康熙字典": "《唐韻》愚袁切《集韻》《韻會》《正韻》虞袁切，並音源。", "中華字海": "元，本義為開始、開頭。引申為第一、首要。", "漢語大字典": "1. 頭。2. 始、開始。3. 第一、首要。", "其他": "指開始、首要，也指貨幣單位。" } },
+            "天": { char: "天", description: "⿱一夫", pinyin: "tiān", zhuyin: "ㄊㄧㄢ", radical: "大", strokes: 4, meaning: { "說文解字": "顚也。至高無上，从一大。", "廣韻": "他前切，平聲，先韻。顛也。", "康熙字典": "《廣韻》他前切《集韻》《韻會》《正韻》他年切，並音天。", "中華字海": "天，本義指頭頂。引申為天空、自然界。", "漢語大字典": "1. 天空。2. 自然界。3. 一日二十四小時。", "其他": "天空，或指一天二十四小時。" } },
+            "吏": { char: "吏", description: "⿱一史", pinyin: "lì", zhuyin: "ㄌㄧˋ", radical: "口", strokes: 6, meaning: { "說文解字": "治人者也。从一，从史。史亦聲。", "廣韻": "里致切，去聲，志韻。治人者也。", "康熙字典": "《廣韻》里致切《集韻》《韻會》《正韻》力至切，並音利。", "中華字海": "吏，指官員、辦事人員。", "漢語大字典": "1. 官員.2. 辦事人員.", "其他": "指舊時政府中的基層官員或辦事人員。" } },
+            "丄": { char: "丄", description: "⿱卜一", pinyin: "shàng", zhuyin: "ㄕㄤˋ", radical: "一", strokes: 2, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "《字彙補》古文上字。", "中華字海": "同「上」。", "漢語大字典": "同「上」。", "其他": "「上」的異體字。" } },
+            "帝": { char: "帝", description: "⿱丶𢂇", pinyin: "dì", zhuyin: "ㄉㄧˋ", radical: "巾", strokes: 9, meaning: { "說文解字": "諦也。王天下之號也。从丄，从巾。", "廣韻": "都計切，去聲，祭韻。天號也。", "康熙字典": "《唐韻》都計切《集韻》《韻會》《正韻》大計切，並音第。", "中華字海": "帝，指神明或君主。引申為皇帝。", "漢語大字典": "1. 指上帝。2. 君主。3. 君王的諡號。", "其他": "指神祇、君主或最高統治者。" } },
+            "𢂇": { char: "𢂇", description: "⿳一丷⿱冖巾", pinyin: "dì", zhuyin: "ㄉㄧˋ", radical: "心", strokes: 13, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "無", "中華字海": "同「帝」。", "漢語大字典": "同「帝」。", "其他": "「帝」的異體字。" } },
+            "旁": { char: "旁", description: "⿳亠丷⿱冖方", pinyin: "páng", zhuyin: "ㄆㄤˊ", radical: "方", strokes: 10, meaning: { "說文解字": "溥也。从方，尚聲。", "廣韻": "步光切，平聲，唐韻。溥也。", "康熙字典": "《廣韻》步光切《集韻》《韻會》《正韻》蒲光切，並音旁。", "中華字海": "旁，本義為廣大、普遍。後引申為旁邊、側面。", "漢語大字典": "1. 邊緣，旁邊。2. 廣泛地。3. 另一方。", "其他": "指在某物體的側邊，或指廣泛、普遍。" } },
+            "𣃟": { char: "𣃟", description: "⿳下冖方", pinyin: "qí", zhuyin: "ㄑㄧˊ", radical: "示", strokes: 10, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "無", "中華字海": "古同「祇」。", "漢語大字典": "同「祇」。", "其他": "「祇」的異體字。" } },
+            "𣃙": { char: "𣃙", description: "⿳一八方", pinyin: "qí", zhuyin: "ㄑㄧˊ", radical: "示", strokes: 10, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "無", "中華字海": "同「祇」。", "漢語大字典": "同「祇」。", "其他": "「祇」的異體字。" } },
+            "丅": { char: "丅", description: "⿱一丨", pinyin: "xià", zhuyin: "ㄒㄧㄚˋ", radical: "一", strokes: 2, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "《字彙補》古文下字。", "中華字海": "同「下」。", "漢語大字典": "同「下」。", "其他": "「下」的異體字。" } },
+            "示": { char: "示", description: "⿱二小", pinyin: "shì", zhuyin: "ㄕˋ", radical: "示", strokes: 5, meaning: { "說文解字": "天垂象，見吉凶，所以示人也。从二。三垂，日月星也。觀乎天文以察時變。示，神事也。凡示之屬皆从示。", "廣韻": "賞至切，去聲，至韻。見也。", "康熙字典": "《廣韻》賞至切《集韻》《韻會》《正韻》式至切，並音示。《說文》天垂象，見吉凶，所以示人也。從二，三垂，日月星也。", "中華字海": "示，本義為給人看、表明。後引申為表示、顯示。", "漢語大字典": "1. 顯示，給人看。2. 神靈。3. 祭祀。", "其他": "指表示、顯示，也指與神祇相關的事物。" } },
+            "𡭕": { char: "𡭕", description: "⿱一小", pinyin: "shén", zhuyin: "ㄕㄣˊ", radical: "示", strokes: 8, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "《字彙補》同神。", "中華字海": "同「神」。", "漢語大字典": "同「神」。", "其他": "「神」的異體字。" } },
+            "祜": { char: "祜", description: "⿰礻古", pinyin: "hù", zhuyin: "ㄏㄨˋ", radical: "示", strokes: 10, meaning: { "說文解字": "無", "廣韻": "胡故切，去聲，遇韻。福也。", "康熙字典": "《唐韻》《集韻》《韻會》胡故切《正韻》胡到切，並音護。", "中華字海": "祜，指福氣、福祉。", "漢語大字典": "1. 福.2. 庇佑.", "其他": "指上天賜予的福氣。" } },
+            "禮": { char: "禮", description: "⿰礻豊", pinyin: "lǐ", zhuyin: "ㄌㄧˇ", radical: "示", strokes: 18, meaning: { "說文解字": "履也。所以事神致福也。从示，从豊。", "廣韻": "力劑切，去聲，霽韻。儀也。", "康熙字典": "《唐韻》力劑切《集韻》《韻會》力霽切《正韻》力制切，並音麗。", "中華字海": "禮，指祭祀神明的儀式。後引申為禮節、禮儀。", "漢語大字典": "1. 祭祀神靈的儀式.2. 道德規範.3. 禮物.", "其他": "指人們在社會交往中應遵守的規範和儀式。" } },
+            "礼": { char: "礼", description: "⿰礻乚", pinyin: "lǐ", zhuyin: "ㄌㄧˇ", radical: "示", strokes: 5, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "無", "中華字海": "「禮」的簡化字。", "漢語大字典": "同「禮」。", "其他": "「禮」的簡化字。" } },
+            "禛": { char: "禛", description: "⿰礻真", pinyin: "zhēn", zhuyin: "ㄓㄣ", radical: "示", strokes: 15, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "《集韻》珍，或作禛。", "中華字海": "禛，指神靈降福。", "漢語大字典": "1. 帝王祭祀.2. 神靈降福.", "其他": "指神靈賜予福氣，也用作人名。" } },
+            "祿": { char: "祿", description: "⿰礻彔", pinyin: "lù", zhuyin: "ㄌㄨˋ", radical: "示", strokes: 13, meaning: { "說文解字": "福也。从示，彔聲。", "廣韻": "力玉切，入聲，屋韻。福也。", "康熙字典": "《唐韻》力玉切《集韻》《韻會》龍玉切《正韻》龍逐切，並音麓。", "中華字海": "祿，指福氣、俸祿。", "漢語大字典": "1. 福氣.2. 官吏的俸給.", "其他": "指官員的俸給或個人的福氣。" } },
+            "禠": { char: "禠", description: "⿰礻虒", pinyin: "yí", zhuyin: "ㄧˊ", radical: "示", strokes: 13, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "《玉篇》祭祀名。", "中華字海": "指一種祭祀儀式。", "漢語大字典": "1. 祭名。2. 祭祀所用器皿。", "其他": "指古代的一種祭祀。" } },
+            "禎": { char: "禎", description: "⿰礻貞", pinyin: "zhēn", zhuyin: "ㄓㄣ", radical: "示", strokes: 14, meaning: { "說文解字": "無", "廣韻": "陟盈切，平聲，庚韻。福也。", "康熙字典": "《廣韻》陟盈切《集韻》《韻會》知盈切，並音貞。", "中華字海": "禎，指吉祥、福氣。", "漢語大字典": "1. 吉祥.2. 福.", "其他": "指吉祥、幸福、祥瑞。" } },
+            "祥": { char: "祥", description: "⿰礻羊", pinyin: "xiáng", zhuyin: "ㄒㄧㄤˊ", radical: "示", strokes: 10, meaning: { "說文解字": "福也。从示，羊聲。", "廣韻": "似羊切，平聲，陽韻。福也。", "康熙字典": "《廣韻》似羊切《集韻》《韻會》徐羊切，並音詳。", "中華字海": "祥，指吉祥、福氣。", "漢語大字典": "1. 吉祥.2. 祥瑞.3. 徵兆.", "其他": "指好的徵兆，代表吉祥、幸福。" } },
+            "祉": { char: "祉", description: "⿰礻止", pinyin: "zhǐ", zhuyin: "ㄓˇ", radical: "示", strokes: 8, meaning: { "說文解字": "福也。从示，止聲。", "廣韻": "之日切，上聲，旨韻。福也。", "康熙字典": "《唐韻》之日切《集韻》《韻會》《正韻》旨切，並音止。", "中華字海": "祉，指福氣、福分。", "漢語大字典": "1. 福.2. 幸福.", "其他": "指福氣、幸福。" } },
+            "福": { char: "福", description: "⿰礻畐", pinyin: "fú", zhuyin: "ㄈㄨˊ", radical: "示", strokes: 13, meaning: { "說文解字": "祐也。从示，畐聲。", "廣韻": "方六切，入聲，屋韻。祐也。", "康熙字典": "《唐韻》方六切《集韻》《韻會》《正韻》馮六切，並音服。", "中華字海": "福，指幸福、福氣。", "漢語大字典": "1. 幸福.2. 好運.3. 祝福.", "其他": "指好運、幸福，或指為人帶來好運氣。" } },
+            "祐": { char: "祐", description: "⿰礻右", pinyin: "yòu", zhuyin: "ㄧㄡˋ", radical: "示", strokes: 9, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "《廣韻》于救切《集韻》爰救切，並音右。", "中華字海": "祐，指神靈保佑。", "漢語大字典": "1. 保佑.2. 幫助.3. 神靈.", "其他": "指神靈的保佑或幫助。" } },
+            "祺": { char: "祺", description: "⿰礻其", pinyin: "qí", zhuyin: "ㄑㄧˊ", radical: "示", strokes: 12, meaning: { "說文解字": "無", "廣韻": "渠之切，平聲，支韻。吉祥也。", "康熙字典": "《廣韻》渠之切《集韻》《韻會》渠羈切，並音祇。", "中華字海": "祺，指吉祥、幸福。", "漢語大字典": "1. 吉祥.2. 幸福.3. 祝福語.", "其他": "指吉祥、幸福，常用於書信結尾，表示祝福。" } },
+            "禥": { char: "禥", description: "⿰礻基", pinyin: "qí", zhuyin: "ㄑㄧˊ", radical: "示", strokes: 14, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "無", "中華字海": "同「祺」。", "漢語大字典": "同「祺」。", "其他": "「祺」的異體字。" } },
+            "祗": { char: "祗", description: "⿰礻氐", pinyin: "zhī", zhuyin: "ㄓ", radical: "示", strokes: 10, meaning: { "說文解字": "無", "廣韻": "章移切，平聲，支韻。敬也。", "康熙字典": "《唐韻》《廣韻》章移切《集韻》《韻會》支離切《正韻》旨而切，並音支。", "中華字海": "祗，本義為敬。後引申為只、僅僅。", "漢語大字典": "1. 敬.2. 只，僅僅.3. 祭祀.", "其他": "表示敬重，或僅僅、只不過。" } },
+            "禔": { char: "禔", description: "⿰礻是", pinyin: "tí", zhuyin: "ㄊㄧˊ", radical: "示", strokes: 14, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "《集韻》同禔。", "中華字海": "指福氣。", "漢語大字典": "1. 福.2. 安寧.", "其他": "指安寧、平安。" } },
+            "神": { char: "神", description: "⿰礻申", pinyin: "shén", zhuyin: "ㄕㄣˊ", radical: "示", strokes: 9, meaning: { "說文解字": "天神引出萬物者也。从示，申聲。", "廣韻": "食鄰切，平聲，真韻。天神也。", "康熙字典": "《唐韻》《集韻》《韻會》食鄰切《正韻》時鄰切，並音申。", "中華字海": "神，本義為天神。後泛指一切神靈、精神。", "漢語大字典": "1. 天神.2. 精神.3. 靈妙.", "其他": "指超自然的力量，或人的精神、意識。" } },
+            "祇": { char: "祇", description: "⿰礻示", pinyin: "qí", zhuyin: "ㄑㄧˊ", radical: "示", strokes: 10, meaning: { "說文解字": "地祇，司土功。從示，氐聲。", "廣韻": "渠脂切，平聲，支韻。地祇。", "康熙字典": "《廣韻》渠脂切《集韻》《韻會》渠宜切，並音其。", "中華字海": "祇，指地神。", "漢語大字典": "1. 地神.2. 敬.3. 僅僅.", "其他": "指地神，與天神相對。" } },
+            "祕": { char: "祕", description: "⿰禾必", pinyin: "mì", zhuyin: "ㄇㄧˋ", radical: "禾", strokes: 10, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "無", "中華字海": "同「秘」。", "漢語大字典": "同「秘」。", "其他": "「秘」的繁體字。" } },
+            "齋": { char: "齋", description: "⿵齊小", pinyin: "zhāi", zhuyin: "ㄓㄞ", radical: "示", strokes: 17, meaning: { "說文解字": "潔也。从示，齊省聲。", "廣韻": "側皆切，平聲，皆韻。齊也。", "康熙字典": "《唐韻》側皆切《集韻》《韻會》莊皆切《正韻》莊佳切，並音賫。", "中華字海": "齋，本義為齋戒。引申為書房、寺廟。", "漢語大字典": "1. 齋戒.2. 書房.3. 吃素.", "其他": "指為表示敬意而淨化身心，也指書房或素食。" } },
+            "𪗒": { char: "𪗒", description: "⿰齋⿳匕⿺𠃊目夊", pinyin: "zāi", zhuyin: "ㄗㄞ", radical: "示", strokes: 19, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "無", "中華字海": "同「齋」。", "漢語大字典": "同「齋」。", "其他": "「齋」的異體字。" } },
+            "禋": { char: "禋", description: "⿰礻垔", pinyin: "yīn", zhuyin: "ㄧㄣ", radical: "示", strokes: 13, meaning: { "說文解字": "煙祭也。从示，因聲。", "廣韻": "於真切，平聲，真韻。煙祭也。", "康熙字典": "《唐韻》《集韻》《韻會》《正韻》於眞切，並音因。", "中華字海": "禋，指煙祭，用煙火來祭祀。", "漢語大字典": "1. 煙祭.2. 祭名.", "其他": "指古代的一種祭祀儀式，用煙來祭祀。" } },
+            "𡫚": { char: "𡫚", description: "⿱丶𥛛", pinyin: "qí", zhuyin: "ㄑㄧˊ", radical: "示", strokes: 12, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "無", "中華字海": "同「祺」。", "漢語大字典": "同「祺」。", "其他": "「祺」的異體字。" } },
+            "祭": { char: "祭", description: "⿱⿰𱼀龴礻", pinyin: "jì", zhuyin: "ㄐㄧˋ", radical: "示", strokes: 11, meaning: { "說文解字": "以手持肉而祭祀。从示，从又。", "廣韻": "子例切，去聲，祭韻。祀也。", "康熙字典": "《唐韻》子例切《集韻》《韻會》在例切，並音劑。", "中華字海": "祭，指用物品向神靈或祖先表示敬意。", "漢語大字典": "1. 祭祀.2. 用酒或肉敬神.", "其他": "用特定的儀式向神靈或祖先表達敬意。" } },
+            "祀": { char: "祀", description: "⿰礻巳", pinyin: "sì", zhuyin: "ㄙˋ", radical: "示", strokes: 7, meaning: { "說文解字": "祭無已也。从示，巳聲。", "廣韻": "息利切，去聲，至韻。祭也。", "康熙字典": "《唐韻》《廣韻》《集韻》《韻會》息利切《正韻》息吏切，並音四。", "中華字海": "祀，指祭祀，尤其指祭祀神靈。", "漢語大字典": "1. 祭祀.2. 敬神.", "其他": "指祭拜神靈或祖先。" } },
+            "禩": { char: "禩", description: "⿰礻異", pinyin: "yì", zhuyin: "ㄧˋ", radical: "示", strokes: 14, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "《玉篇》祭名。", "中華字海": "指一種祭祀儀式。", "漢語大字典": "同「祀」。", "其他": "古代的祭祀儀式。" } },
+            "祡": { char: "祡", description: "⿱此示", pinyin: "chái", zhuyin: "ㄔㄞˊ", radical: "示", strokes: 10, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "《正字通》古者焚柴以祭天。", "中華字海": "指用柴薪祭祀天或神靈。", "漢語大字典": "1. 祭名。2. 同「柴」。", "其他": "用柴薪進行的祭祀儀式。" } },
+            "𥚨": { char: "𥚨", description: "⿰礻⿱左⺝", pinyin: "chèn", zhuyin: "ㄔㄣˋ", radical: "示", strokes: 13, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "《玉篇》祭日月星也。", "中華字海": "祭祀日月星辰。", "漢語大字典": "祭祀日月星辰。也作「禔」。", "其他": "古代祭祀日月星辰的儀式。" } },
+            "禷": { char: "禷", description: "⿰礻類", pinyin: "lè", zhuyin: "ㄌㄜˋ", radical: "示", strokes: 15, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "《集韻》或作禷。", "中華字海": "指古代天子祭祀后土。", "漢語大字典": "1. 古代祭祀名。2. 同「禡」。", "其他": "古代天子祭后土的儀式。" } },
+            "祪": { char: "祪", description: "⿰礻危", pinyin: "huì", zhuyin: "ㄏㄨㄟˋ", radical: "示", strokes: 11, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "《廣韻》祭先祖也。", "中華字海": "指古代祭祀祖先的儀式。", "漢語大字典": "1. 祭祀祖先。2. 祭祀之器。", "其他": "祭祀祖先的儀式。" } },
+            "祔": { char: "祔", description: "⿰礻付", pinyin: "fù", zhuyin: "ㄈㄨˋ", radical: "示", strokes: 8, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "《禮記》以新死者祔於祖也。", "中華字海": "指將新死者合祭於祖廟。", "漢語大字典": "1. 將新死者靈位附於祖廟中，合祀。2. 祭名。", "其他": "將新亡者的牌位放入祖廟與祖先一同祭祀。" } },
+            "祖": { char: "祖", description: "⿰礻且", pinyin: "zǔ", zhuyin: "ㄗㄨˇ", radical: "示", strokes: 9, meaning: { "說文解字": "始廟也。", "廣韻": "臧老切，上聲，晧韻。始也。", "康熙字典": "《廣韻》臧老切《集韻》側老切，並音早。", "中華字海": "祖，本義為始祖。後引申為祖先、祖輩。", "漢語大字典": "1. 最早的祖先。2. 祖先。3. 創造者。", "其他": "指血緣關係中的祖輩，或事物的創始者。" } },
+            "𥛱": { char: "𥛱", description: "⿱彭示", pinyin: "lì", zhuyin: "ㄌㄧˋ", radical: "示", strokes: 12, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "《字彙補》古祭名。", "中華字海": "指古代的一種祭祀。", "漢語大字典": "古祭名。", "其他": "古代的祭祀儀式。" } },
+            "祊": { char: "祊", description: "⿰礻方", pinyin: "fāng", zhuyin: "ㄈㄤ", radical: "示", strokes: 9, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "《集韻》祭名。", "中華字海": "指宗廟的偏殿。", "漢語大字典": "宗廟的偏殿。", "其他": "宗廟旁的建築。" } },
+            "祰": { char: "祰", description: "⿰礻告", pinyin: "gào", zhuyin: "ㄍㄠˋ", radical: "示", strokes: 10, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "《廣韻》祭名，以牲血告神。", "中華字海": "指祭祀時用牲畜的血來告祭神靈。", "漢語大字典": "祭祀名，以牲血告祭。", "其他": "用牲血祭告神靈的儀式。" } },
+            "祏": { char: "祏", description: "⿰礻石", pinyin: "shí", zhuyin: "ㄕˊ", radical: "示", strokes: 9, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "《廣韻》宗廟藏主石室。", "中華字海": "宗廟中藏神主牌的石函。", "漢語大字典": "1. 宗廟中藏神主牌的石函。2. 石室。", "其他": "宗廟中用於存放神主牌的石製容器。" } },
+            "䃾": { char: "䃾", description: "⿰礻比", pinyin: "bù", zhuyin: "ㄅㄨˋ", radical: "石", strokes: 10, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "《集韻》祭名。", "中華字海": "指古代的一種祭祀儀式。", "漢語大字典": "古祭名。", "其他": "古代的一種祭祀儀式。" } },
+            "祠": { char: "祠", description: "⿰礻司", pinyin: "cí", zhuyin: "ㄘˊ", radical: "示", strokes: 9, meaning: { "說文解字": "春祭也。", "廣韻": "似茲切，平聲，支韻。祭也。", "康熙字典": "《唐韻》似茲切《集韻》《韻會》《正韻》詳茲切，並音辭。", "中華字海": "祠，祭祀。也指祭祀的廟宇。", "漢語大字典": "1. 祭祀。2. 祭祀神祇或祖先的廟宇。", "其他": "指祭祀的儀式或場所。" } },
+            "礿": { char: "礿", description: "⿰礻勺", pinyin: "yuè", zhuyin: "ㄩㄝˋ", radical: "石", strokes: 16, meaning: { "說文解字": "夏祭也。", "廣韻": "無", "康熙字典": "《唐韻》以灼切《集韻》亦灼切，並音藥。", "中華字海": "指夏季祭祀祖先的儀式。", "漢語大字典": "1. 夏祭。2. 祭名。", "其他": "古代夏季祭祀祖先的儀式。" } },
+            "禘": { char: "禘", description: "⿰礻帝", pinyin: "dì", zhuyin: "ㄉㄧˋ", radical: "示", strokes: 14, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "《廣韻》大祭也。", "中華字海": "指古代帝王在宗廟舉行的大祭。", "漢語大字典": "1. 古代帝王在宗廟舉行的大祭。2. 祭祀名。", "其他": "古代帝王的大型祭祀儀式。" } },
+            "祫": { char: "祫", description: "⿰礻合", pinyin: "xiá", zhuyin: "ㄒㄧㄚˊ", radical: "示", strokes: 10, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "《廣韻》宗廟合祭。", "中華字海": "指宗廟合祭遠近祖先的儀式。", "漢語大字典": "1. 宗廟合祭。2. 祭祀名。", "其他": "宗廟中將遠近祖先一同合祭的儀式。" } },
+            "祼": { char: "祼", description: "⿰礻果", pinyin: "guàn", zhuyin: "ㄍㄨㄢˋ", radical: "示", strokes: 10, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "《廣韻》以酒灌地而祭。", "中華字海": "指祭祀時用酒灌地，以迎神靈。", "漢語大字典": "1. 祭祀儀式，以酒灌地。2. 灌酒。", "其他": "祭祀時將酒澆在地上。" } },
+            "䄟": { char: "䄟", description: "⿱毳示", pinyin: "tóng", zhuyin: "ㄊㄨㄥˊ", radical: "示", strokes: 8, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "《集韻》古祭名。", "中華字海": "古代的一種祭祀儀式。", "漢語大字典": "古祭名。", "其他": "古代的一種祭祀。" } },
+            "祝": { char: "祝", description: "⿰礻兄", pinyin: "zhù", zhuyin: "ㄓㄨˋ", radical: "示", strokes: 9, meaning: { "說文解字": "祭主贊詞者。从示，从口。", "廣韻": "之欲切，去聲，屋韻。祭官。", "康熙字典": "《唐韻》之欲切《集韻》《韻會》《正韻》竹欲切，並音燭。", "中華字海": "祝，祭祀時的祭官。引申為祈禱、祝福。", "漢語大字典": "1. 祭祀時的祭官。2. 祈禱、祝福。3. 姓。", "其他": "指對人或事物表達美好的願望。" } },
+            "𥛅": { char: "𥛅", description: "⿰礻留", pinyin: "zào", zhuyin: "ㄗㄠˋ", radical: "示", strokes: 11, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "《字彙補》祭灶神。", "中華字海": "指祭祀灶神。", "漢語大字典": "同「禂」。祭名。", "其他": "指祭祀灶神的儀式。" } },
+            "祓": { char: "祓", description: "⿰礻犮", pinyin: "fú", zhuyin: "ㄈㄨˊ", radical: "示", strokes: 10, meaning: { "說文解字": "除惡也。从示，从犮。", "廣韻": "防伐切，入聲，曷韻。除惡也。", "康熙字典": "《唐韻》扶伐切《集韻》《韻會》扶發切《正韻》扶別切，並音伐。", "中華字海": "祓，指古代除災去邪的儀式。", "漢語大字典": "1. 古代除災去邪的儀式。2. 祭祀名。", "其他": "指古代透過祭祀或儀式來消除災禍、驅除邪氣。" } },
+            "祈": { char: "祈", description: "⿰礻斤", pinyin: "qí", zhuyin: "ㄑㄧˊ", radical: "示", strokes: 8, meaning: { "說文解字": "求福也。", "廣韻": "巨支切，平聲，支韻。求福也。", "康熙字典": "《唐韻》巨支切《集韻》《韻會》渠之切《正韻》渠宜切，並音其。", "中華字海": "祈，向神靈求福。", "漢語大字典": "1. 向神靈求福。2. 祈禱。", "其他": "向神靈或上天祈求保佑或祝福。" } },
+            "禱": { char: "禱", description: "⿰礻壽", pinyin: "dǎo", zhuyin: "ㄉㄠˇ", radical: "示", strokes: 17, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "《廣韻》徒保切《集韻》都老切，並音導。", "中華字海": "禱，指向神靈祈求或祝願。", "漢語大字典": "1. 向神靈祈求或祝願。2. 祈禱。", "其他": "向神靈表達願望並尋求庇佑。" } },
+            "𥛇": { char: "𥛇", description: "⿰礻𢏚", pinyin: "fàn", zhuyin: "ㄈㄢˋ", radical: "示", strokes: 7, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "《集韻》祭名。", "中華字海": "古代祭祀名。", "漢語大字典": "古祭名。", "其他": "古代的一種祭祀儀式。" } },
+            "禜": { char: "禜", description: "⿱𤇾示", pinyin: "yíng", zhuyin: "ㄧㄥˊ", radical: "示", strokes: 17, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "《廣韻》祭名。", "中華字海": "指古代的一種祭祀。", "漢語大字典": "1. 祭名。2. 祭祀時用的器具。", "其他": "古代的祭祀儀式。" } },
+            "禳": { char: "禳", description: "⿰礻襄", pinyin: "ráng", zhuyin: "ㄖㄤˊ", radical: "示", strokes: 19, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "《廣韻》除殃也。", "中華字海": "指祈禱消災。", "漢語大字典": "1. 祈禱消災。2. 祭名。", "其他": "透過祭祀或儀式來消除災禍。" } },
+            "禬": { char: "禬", description: "⿰礻會", pinyin: "guì", zhuyin: "ㄍㄨㄟˋ", radical: "示", strokes: 13, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "《集韻》祭名。", "中華字海": "指古代秋季的祭祀。", "漢語大字典": "1. 秋祭。2. 祭名。", "其他": "古代秋季的祭祀儀式。" } },
+            "禪": { char: "禪", description: "⿰礻單", pinyin: "shàn", zhuyin: "ㄕㄢˋ", radical: "示", strokes: 13, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "《廣韻》封也。祭地曰禪。", "中華字海": "指古代帝王祭祀地神。", "漢語大字典": "1. 祭祀地神。2. 帝王祭地。3. 禪讓。", "其他": "指祭祀地神，與「封」相對。" } },
+            "禦": { char: "禦", description: "⿰御示", pinyin: "yù", zhuyin: "ㄩˋ", radical: "示", strokes: 16, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "《集韻》祭名。", "中華字海": "指祭祀名，以除災。", "漢語大字典": "1. 祭祀名。2. 同「御」。", "其他": "古代為消除災難而進行的祭祀儀式。" } },
+            "䄆": { char: "䄆", description: "⿰礻舌", pinyin: "xiè", zhuyin: "ㄒㄧㄝˋ", radical: "示", strokes: 11, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "《廣韻》祭名。", "中華字海": "指古代用牲血祭祀。", "漢語大字典": "1. 祭名。2. 以血祭祀。", "其他": "古代用牲畜的血來進行的祭祀儀式。" } },
+            "禖": { char: "禖", description: "⿰礻某", pinyin: "méi", zhuyin: "ㄇㄟˊ", radical: "示", strokes: 13, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "《玉篇》求子之神。", "中華字海": "指古代求子之神。", "漢語大字典": "1. 祭名，求子之祭。2. 神名。", "其他": "古代為求子嗣而進行的祭祀。" } },
+            "𥚩": { char: "𥚩", description: "⿰礻胥", pinyin: "kǎi", zhuyin: "ㄎㄞˇ", radical: "示", strokes: 13, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "《廣韻》春祭名。", "中華字海": "指古代春季的祭祀。", "漢語大字典": "春祭。", "其他": "古代春季的祭祀儀式。" } },
+            "祳": { char: "祳", description: "⿰礻辰", pinyin: "shēn", zhuyin: "ㄕㄣ", radical: "示", strokes: 10, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "《玉篇》祭名。", "中華字海": "古代祭祀名。", "漢語大字典": "祭名。", "其他": "古代的一種祭祀。" } },
+            "祴": { char: "祴", description: "⿰礻戒", pinyin: "gài", zhuyin: "ㄍㄞˋ", radical: "示", strokes: 9, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "《廣韻》祭名。", "中華字海": "古代祭祀名。", "漢語大字典": "祭名。", "其他": "古代的一種祭祀。" } },
+            "禡": { char: "禡", description: "⿰礻馬", pinyin: "mǎ", zhuyin: "ㄇㄚˇ", radical: "示", strokes: 13, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "《廣韻》行軍祭也。", "中華字海": "指軍隊出征前祭祀馬神。", "漢語大字典": "1. 軍隊出征前的祭祀。2. 祭名。", "其他": "古代軍隊出征前祭祀神靈的儀式。" } },
+            "禂": { char: "禂", description: "⿰礻周", pinyin: "dào", zhuyin: "ㄉㄠˋ", radical: "示", strokes: 7, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "《廣韻》祭名。", "中華字海": "古代祭祀名。", "漢語大字典": "古祭名。", "其他": "古代的一種祭祀儀式。" } },
+            "𩤫": { char: "𩤫", description: "⿰馬𢏚", pinyin: "chán", zhuyin: "ㄔㄢˊ", radical: "風", strokes: 19, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "無", "中華字海": "同「禪」。", "漢語大字典": "同「禪」。", "其他": "「禪」的異體字。" } },
+            "社": { char: "社", description: "⿰礻土", pinyin: "shè", zhuyin: "ㄕㄜˋ", radical: "示", strokes: 7, meaning: { "說文解字": "地主也。从土，申聲。", "廣韻": "尸夜切，去聲，禡韻。地神也。", "康熙字典": "《唐韻》尸夜切《集韻》《韻會》《正韻》式夜切，並音舍。", "中華字海": "社，指土地神。也指祭祀土地神的地方。", "漢語大字典": "1. 土地神。2. 祭祀土地神的地方。3. 團體、組織。", "其他": "指土地神或祭祀土地神的場所。" } },
+            "𥙭": { char: "𥙭", description: "⿰礻句", pinyin: "gōu", zhuyin: "ㄍㄡ", radical: "示", strokes: 8, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "無", "中華字海": "古祭名。", "漢語大字典": "古祭名。", "其他": "古代的一種祭祀儀式。" } },
+            "禓": { char: "禓", description: "⿰礻昜", pinyin: "yáng", zhuyin: "ㄧㄤˊ", radical: "示", strokes: 12, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "《廣韻》祭名，以去疫。", "中華字海": "古代祭祀，以驅除疫病。", "漢語大字典": "1. 祭名，以去疫。2. 同「禔」。", "其他": "古代驅除疫病的祭祀。" } },
+            "祲": { char: "祲", description: "⿰礻𠬶", pinyin: "jìn", zhuyin: "ㄐㄧㄣˋ", radical: "示", strokes: 13, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "《廣韻》妖氣也。", "中華字海": "指妖氣或不祥的氣息。", "漢語大字典": "1. 妖氣。2. 災難。", "其他": "指不祥或邪惡的氣息。" } },
+            "禍": { char: "禍", description: "⿰礻咼", pinyin: "huò", zhuyin: "ㄏㄨㄛˋ", radical: "示", strokes: 13, meaning: { "說文解字": "神不福也。", "廣韻": "胡臥切，去聲，過韻。災也。", "康熙字典": "《唐韻》胡臥切《集韻》《韻會》胡郭切，並音鑊。", "中華字海": "禍，指災害，與「福」相對。", "漢語大字典": "1. 災難。2. 禍害。", "其他": "指不幸的災難或災禍。" } },
+            "祟": { char: "祟", description: "⿱出示", pinyin: "suì", zhuyin: "ㄙㄨㄟˋ", radical: "示", strokes: 10, meaning: { "說文解字": "神不享祀。从示，从山。山，神之所安。", "廣韻": "祥歲切，去聲，邃韻。神不享祀也。", "康熙字典": "《廣韻》祥歲切《集韻》徐醉切，並音遂。", "中華字海": "祟，指鬼神作怪而造成的災禍。", "漢語大字典": "1. 鬼神作怪。2. 災禍。", "其他": "指由鬼神引起的災難。" } },
+            "𥜱": { char: "𥜱", description: "⿰祟⿱真夂", pinyin: "yāo", zhuyin: "ㄧㄠ", radical: "示", strokes: 8, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "無", "中華字海": "同「妖」。", "漢語大字典": "同「妖」。", "其他": "「妖」的異體字。" } },
+            "祅": { char: "祅", description: "⿰礻夭", pinyin: "yāo", zhuyin: "ㄧㄠ", radical: "示", strokes: 8, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "無", "中華字海": "同「妖」。", "漢語大字典": "同「妖」。", "其他": "「妖」的異體字。" } },
+            "祘": { char: "祘", description: "⿰礻𭥄", pinyin: "suàn", zhuyin: "ㄙㄨㄢˋ", radical: "示", strokes: 10, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "《集韻》同算。", "中華字海": "同「算」。", "漢語大字典": "同「算」。", "其他": "「算」的異體字。" } },
+            "禁": { char: "禁", description: "⿰林示", pinyin: "jìn", zhuyin: "ㄐㄧㄣˋ", radical: "示", strokes: 13, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "《廣韻》吉運切《集韻》《韻會》居運切，並音燼。《說文》神事也。", "中華字海": "禁，本義為祭祀。後引申為禁止、限制。", "漢語大字典": "1. 禁忌。2. 禁止。3. 承受。", "其他": "指禁止、限制，或與宗教祭祀有關的儀式。" } },
+            "禫": { char: "禫", description: "⿰礻覃", pinyin: "dǎn", zhuyin: "ㄉㄢˇ", radical: "示", strokes: 15, meaning: { "說文解字": "無", "廣韻": "無", "康熙字典": "《廣韻》徒覽切，上聲，感韻。祭名。", "中華字海": "指古代除去喪服的祭祀。", "漢語大字典": "1. 祭名，除去喪服之祭。2. 喪禮。", "其他": "古代喪禮結束後，脫去喪服的祭祀儀式。" } },
+        };
+        
+        /**
+         * 函式：根據提供的資料建立一個詳細的字符卡片。
+         * @param {object} characterData - 字符的資料物件。
+         * @returns {HTMLElement} 建立好的卡片元素。
+         */
+        function createCharacterCard(characterData) {
+            const characterCard = document.createElement('div');
+            characterCard.className = 'character-card bg-white p-6 rounded-lg shadow-md text-left space-y-4';
+            
+            const titleContainer = document.createElement('div');
+            titleContainer.className = 'text-center mb-4';
+            
+            const char = characterData.char;
+            
+            const characterDisplay = document.createElement('div');
+            characterDisplay.className = 'character-display-container';
+
+            // 處理特殊字元 '󸾯' 的圖片顯示，因為瀏覽器原生字體可能無法正確顯示
+            if (char === '󸾯') {
+                const characterText = document.createElement('h2');
+                characterText.className = 'text-[80px] text-gray-800 font-zhengkai-unicode2';
+                characterText.textContent = char;
+                characterDisplay.appendChild(characterText);
+
+                const characterImage = document.createElement('img');
+                characterImage.src = "https://www.cns11643.gov.tw/char/kai/80/F8FAF.png";
+                characterImage.alt = char;
+                characterImage.className = 'character-image w-20 h-20';
+                characterDisplay.appendChild(characterImage);
+            } else {
+                // 對於其他字符，同步顯示文字與圖片
+                const characterText = document.createElement('h2');
+                characterText.className = 'character-text text-gray-800';
+                characterText.textContent = char;
+                characterDisplay.appendChild(characterText);
+
+                const characterImage = document.createElement('img');
+                characterImage.src = generateCharacterImage(char, 80);
+                characterImage.alt = char;
+                characterImage.className = 'character-image w-20 h-20';
+                characterDisplay.appendChild(characterImage);
+            }
+
+            titleContainer.appendChild(characterDisplay);
+            characterCard.appendChild(titleContainer);
+
+            // 建立資訊表格
+            const infoTable = document.createElement('table');
+            infoTable.className = 'w-full text-left border-collapse mb-4';
+            const infoTableBody = document.createElement('tbody');
+            infoTable.appendChild(infoTableBody);
+
+            // 輔助函式：建立表格列
+            const createRow = (header, content, className = '') => {
+                const row = document.createElement('tr');
+                row.className = 'border-b border-gray-200';
+                row.innerHTML = `
+                    <td class="py-1 px-2 text-gray-700 w-1/4 header-cell">${header}</td>
+                    <td class="py-1 px-2 text-gray-700 ${className}">${content}</td>
+                `;
+                return row;
+            };
+
+            infoTableBody.appendChild(createRow('字符描述', characterData.description || '無'));
+            // 處理有多個讀音的字
+            if (characterData.tones) {
+                const allZhuyin = characterData.tones.map(t => t.zhuyin).join('、');
+                const allPinyin = characterData.tones.map(t => t.pinyin).join('、');
+                infoTableBody.appendChild(createRow('注音', allZhuyin));
+                infoTableBody.appendChild(createRow('拼音', allPinyin, 'pinyin'));
+            } else {
+                infoTableBody.appendChild(createRow('注音', characterData.zhuyin || '無'));
+                infoTableBody.appendChild(createRow('拼音', characterData.pinyin || '無', 'pinyin'));
+            }
+
+            infoTableBody.appendChild(createRow('部首', characterData.radical || '無'));
+            infoTableBody.appendChild(createRow('筆畫數', characterData.strokes || '無'));
+            characterCard.appendChild(infoTable);
+            
+            // 處理釋義部分
+            const meaningSection = document.createElement('div');
+            meaningSection.className = 'p-4 rounded-lg';
+            const meaningTitle = document.createElement('h3');
+            meaningTitle.className = 'text-lg text-gray-700 mb-2 text-center';
+            meaningTitle.textContent = '釋義';
+            meaningSection.appendChild(meaningTitle);
+
+            const meaningContainer = document.createElement('div');
+            meaningContainer.className = 'divide-y divide-gray-200';
+            
+            if (characterData.tones) {
+                // 如果有多個讀音，分別顯示釋義
+                characterData.tones.forEach(tone => {
+                    const toneSection = document.createElement('div');
+                    toneSection.className = 'p-4 rounded-lg bg-gray-100 mt-4';
+                    const toneHeader = document.createElement('h4');
+                    toneHeader.className = 'text-md text-center text-gray-800 mb-2';
+                    // 這裡的拼音也需要應用 Times New Roman
+                    toneHeader.innerHTML = `讀音：${tone.zhuyin} (<span class="pinyin">${tone.pinyin}</span>)`;
+                    toneSection.appendChild(toneHeader);
+                    const toneMeaningContainer = document.createElement('div');
+                    toneMeaningContainer.className = 'divide-y divide-gray-200';
+                    const meaningSources = Object.keys(tone.meaning);
+                    meaningSources.forEach(source => {
+                        const rowDiv = document.createElement('div');
+                        rowDiv.className = 'grid grid-cols-[120px_1fr] gap-x-2 py-1';
+                        const sourceDiv = document.createElement('div');
+                        sourceDiv.textContent = source;
+                        rowDiv.appendChild(sourceDiv);
+                        const meaningDiv = document.createElement('div');
+                        meaningDiv.textContent = tone.meaning[source];
+                        rowDiv.appendChild(meaningDiv);
+                        toneMeaningContainer.appendChild(rowDiv);
+                    });
+                    toneSection.appendChild(toneMeaningContainer);
+                    meaningContainer.appendChild(toneSection);
+                });
+            } else {
+                // 如果只有單一讀音
+                const meaningSources = Object.keys(characterData.meaning);
+                meaningSources.forEach(source => {
+                    const rowDiv = document.createElement('div');
+                    rowDiv.className = 'grid grid-cols-[120px_1fr] gap-x-2 py-1';
+                    const sourceDiv = document.createElement('div');
+                    sourceDiv.textContent = source;
+                    rowDiv.appendChild(sourceDiv);
+                    const meaningDiv = document.createElement('div');
+                    // 處理漢語大字典的格式
+                    if (source === '漢語大字典') {
+                        const meanings = characterData.meaning[source].split(/\d\.\s*/).filter(m => m.trim() !== '');
+                        const list = document.createElement('ul');
+                        list.className = 'list-none p-0 m-0';
+                        meanings.forEach((meaning, index) => {
+                            const listItem = document.createElement('li');
+                            listItem.textContent = `${index + 1}. ${meaning.trim()}`;
+                            list.appendChild(listItem);
+                        });
+                        meaningDiv.appendChild(list);
+                    } else {
+                        meaningDiv.textContent = characterData.meaning[source];
+                    }
+                    rowDiv.appendChild(meaningDiv);
+                    meaningContainer.appendChild(rowDiv);
+                });
+            }
+            meaningSection.appendChild(meaningContainer);
+            characterCard.appendChild(meaningSection);
+            return characterCard;
+        }
+
+        /**
+         * 函式：利用 canvas 生成中文字符的圖片。
+         * @param {string} char - 要渲染的字符。
+         * @param {number} size - 字體大小（像素）。
+         * @returns {string} 生成的圖片的 Data URL。
+         */
+        function generateCharacterImage(char, size) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = size;
+            canvas.height = size;
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#000';
+            ctx.font = `${size}px "DFKai-SB", "BiauKai", "Source Han Sans TC"`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(char, canvas.width / 2, canvas.height / 2);
+            return canvas.toDataURL('image/png');
+        }
+
+        /**
+         * 函式：根據使用者輸入的查詢詞渲染結果。
+         * @param {string} query 使用者輸入的字串。
+         */
+        function searchDictionary(query) {
+            const trimmedQuery = query.trim();
+            const lowerCaseQuery = trimmedQuery.toLowerCase();
+            resultContainer.innerHTML = ''; // 清空舊的結果
+            
+            if (!trimmedQuery) {
+                resultContainer.innerHTML = `<p class="text-gray-500 text-lg text-center">在這裡輸入一個字來查詢。</p>`;
+                return;
+            }
+
+            const dictionaryToSearch = window.defaultDictionaryData;
+            
+            // 檢查是否有精確匹配的字
+            const exactMatchData = dictionaryToSearch[trimmedQuery];
+            if (exactMatchData) {
+                const card = createCharacterCard(exactMatchData);
+                resultContainer.appendChild(card);
+                return;
+            }
+            
+            // 如果沒有精確匹配，則進行模糊搜尋
+            const allCharacters = Object.values(dictionaryToSearch);
+            const results = allCharacters.filter(item => {
+                const pinyinMatch = item.tones 
+                    ? item.tones.some(t => t.pinyin.includes(lowerCaseQuery)) 
+                    : (item.pinyin && item.pinyin.includes(lowerCaseQuery));
+                
+                const zhuyinMatch = item.tones 
+                    ? item.tones.some(t => t.zhuyin.includes(trimmedQuery))
+                    : (item.zhuyin && item.zhuyin.includes(trimmedQuery));
+                
+                const radicalMatch = item.radical && item.radical.includes(trimmedQuery);
+
+                // 新增的字形描述搜尋邏輯
+                const descriptionMatch = item.description && item.description.includes(trimmedQuery);
+
+                return pinyinMatch || zhuyinMatch || radicalMatch || descriptionMatch;
+            });
+
+            // 渲染模糊搜尋結果
+            if (results.length > 0) {
+                const listTitle = document.createElement('h2');
+                listTitle.className = 'text-2xl text-gray-800 mb-4 text-center';
+                listTitle.textContent = `找到 ${results.length} 個相關結果：`;
+                resultContainer.appendChild(listTitle);
+
+                const resultsGrid = document.createElement('div');
+                resultsGrid.className = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4';
+                results.forEach(item => {
+                    const charButton = document.createElement('button');
+                    charButton.className = 'results-grid-button bg-blue-100 text-blue-800 rounded-lg hover:bg-blue-200 transition-colors';
+                    
+                    const charText = document.createElement('span');
+                    charText.textContent = item.char;
+                    charText.className = `text-base ${item.char === '󸾯' ? 'font-zhengkai-unicode2' : ''}`;
+                    
+                    charButton.appendChild(charText);
+                    
+                    // 點擊按鈕時，將該字填入輸入框並重新搜尋
+                    charButton.addEventListener('click', () => {
+                        searchInput.value = item.char;
+                        searchDictionary(item.char);
+                    });
+                    resultsGrid.appendChild(charButton);
+                });
+                resultContainer.appendChild(resultsGrid);
+            } else {
+                // 沒有找到結果
+                resultContainer.innerHTML = `<p class="text-gray-500 text-lg text-center">找不到「${trimmedQuery}」這個字或詞。請試試其他字。</p>`;
+            }
+        }
+        
+        /**
+         * 函式：切換顯示的頁面
+         * @param {string} pageName - 'dictionary' 或 'info'
+         */
+        function showPage(pageName) {
+            const allNavButtons = document.querySelectorAll('.nav-button');
+            allNavButtons.forEach(btn => btn.classList.remove('bg-gray-400', 'text-white'));
+            
+            if (pageName === 'dictionary') {
+                dictionaryView.classList.remove('hidden');
+                infoView.classList.add('hidden');
+                navDictionaryButton.classList.add('bg-gray-400', 'text-white');
+            } else if (pageName === 'info') {
+                dictionaryView.classList.add('hidden');
+                infoView.classList.remove('hidden');
+                navInfoButton.classList.add('bg-gray-400', 'text-white');
+            }
+        }
+
+        // =========================================================================
+        // 事件監聽器
+        // =========================================================================
+        
+        // 監聽導航按鈕點擊事件
+        navInfoButton.addEventListener('click', () => showPage('info'));
+        navDictionaryButton.addEventListener('click', () => showPage('dictionary'));
+
+        // 監聽搜尋按鈕點擊事件
+        searchButton.addEventListener('click', () => {
+            searchDictionary(searchInput.value);
+        });
+
+        // 監聽輸入框的 Enter 鍵
+        searchInput.addEventListener('keyup', (event) => {
+            if (event.key === 'Enter') {
+                searchDictionary(searchInput.value);
+            }
+        });
+
+        // 初始化應用程式
+        initializeAppAndAuth().then(() => {
+            showPage('info'); // 預設顯示編輯說明頁面
+        });
+    </script>
+</body>
+</html>
