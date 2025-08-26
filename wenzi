@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>字集全庫 - 中文字典</title>
+    <title>wenzi</title>
     <!-- 引入 Tailwind CSS 以便快速樣式化 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- 引入 Google Fonts - Noto Sans TC (保留，以備不時之需) -->
